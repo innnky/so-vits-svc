@@ -85,6 +85,20 @@ def stretch(mel, width): # 0.5-2
     return torchvision.transforms.functional.resize(mel, (mel.size(-2), width))
 
 
+def keep_fixed_number_of_files(dir_path, num_files_to_keep):
+  """
+
+  Args:
+    dir_path: The directory comprise target files
+    num_files_to_keep: The number of file that was the latest generated files
+  """
+  all_files = glob.glob(os.path.join(dir_path, '*'))
+  all_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+  files_to_delete = all_files[num_files_to_keep]
+  for file_path in files_to_delete:
+    os.remove(file_path)
+    logger.warn("The file: {} has been deleted".format(file_path))
+
 def load_checkpoint(checkpoint_path, model, optimizer=None):
   assert os.path.isfile(checkpoint_path)
   checkpoint_dict = torch.load(checkpoint_path, map_location='cpu')
