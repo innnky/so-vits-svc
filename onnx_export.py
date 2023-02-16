@@ -16,7 +16,7 @@ def main(HubertExport,NetExport):
 
     if(HubertExport):
         device = torch.device("cuda")
-        hubert_soft = utils.get_hubert_model()
+        hubert_soft = hubert_model_onnx.hubert_soft("hubert/hubert-soft-0d54a1f4.pt.pt")
         test_input = torch.rand(1, 1, 16000)
         input_names = ["source"]
         output_names = ["embed"]
