@@ -31,13 +31,14 @@ if __name__ == "__main__":
         for wavpath in wavs:
             if not pattern.match(wavpath):
                 print(f"warning：文件名{wavpath}中包含非字母数字下划线，可能会导致错误。（也可能不会）")
-        if len(wavs) < 10:
-            print(f"warning：{speaker}数据集数量小于10条，请补充数据")
         wavs = [i for i in wavs if i.endswith("wav")]
+        wavs_len = len(wavs)
+        if wavs_len < 10:
+            print(f"warning：{speaker}数据集数量小于10条，请补充数据")
         shuffle(wavs)
-        train += wavs[2:-2]
-        val += wavs[:2]
-        test += wavs[-2:]
+        train += wavs[int(wavs_len / 10):int(-wavs_len / 10)]
+        val += wavs[:int(wavs_len / 10)]
+        test += wavs[int(-wavs_len / 10):]
 
     shuffle(train)
     shuffle(val)
