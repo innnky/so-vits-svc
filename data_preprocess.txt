@@ -2,5 +2,5 @@
 	ffmpeg -i some_file.wav -f segment -segment_time $n_secs -c copy name%03d.wav
 2. 使用spleeter提取纯净人声，运行目录要有pretrained_model
 	python -m spleeter separate -p spleeter:2stems -o output some_file.wav
-3. 将纯净人声音频转换为wav格式，采样率22050Hz，单声道
+3. 将纯净人声音频转换为wav格式，采样率22050Hz，单声道 (so-vits 4.0 无采样率和声道要求）
 4. 使用auto-slicer进行切片，仅保留5-15s时长的段落
