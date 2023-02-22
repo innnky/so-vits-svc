@@ -58,43 +58,53 @@ def main():
 
     infer_tool.fill_a_to_b(trans, clean_names)
     for clean_name, tran in zip(clean_names, trans):
-        raw_audio_path = f"raw/{clean_name}"
-        if "." not in raw_audio_path:
-            raw_audio_path += ".wav"
-        infer_tool.format_wav(raw_audio_path)
-        wav_path = Path(raw_audio_path).with_suffix('.wav')
-        chunks = slicer.cut(wav_path, db_thresh=slice_db)
-        audio_data, audio_sr = slicer.chunks2audio(wav_path, chunks)
+        try:
+            raw_audio_path = f"raw/{clean_name}"
+            if "." not in raw_audio_path:
+                raw_audio_path += ".wav"
+            infer_tool.format_wav(raw_audio_path)
+            wav_path = Path(raw_audio_path).with_suffix('.wav')
+            chunks = slicer.cut(wav_path, db_thresh=slice_db)
+            audio_data, audio_sr = slicer.chunks2audio(wav_path, chunks)
+        except (OSError, IOError) as e:
+            print(e)
+            continue
 
         for spk in spk_list:
             audio = []
             for (slice_tag, data) in audio_data:
-                print(f'#=====segment start, {round(len(data) / audio_sr, 3)}s======')
-                # padd
-                pad_len = int(audio_sr * pad_seconds)
-                data = np.concatenate([np.zeros([pad_len]), data, np.zeros([pad_len])])
-                length = int(np.ceil(len(data) / audio_sr * svc_model.target_sample))
-                raw_path = io.BytesIO()
-                soundfile.write(raw_path, data, audio_sr, format="wav")
-                raw_path.seek(0)
-                if slice_tag:
-                    print('jump empty segment')
-                    _audio = np.zeros(length)
-                else:
-                    out_audio, out_sr = svc_model.infer(spk, tran, raw_path,
-                                                        cluster_infer_ratio=cluster_infer_ratio,
-                                                        auto_predict_f0=auto_predict_f0,
-                                                        noice_scale=noice_scale
-                                                        )
-                    _audio = out_audio.cpu().numpy()
+                try:
+                    print(f'#=====segment start, {round(len(data) / audio_sr, 3)}s======')
+                    # padd
+                    pad_len = int(audio_sr * pad_seconds)
+                    data = np.concatenate([np.zeros([pad_len]), data, np.zeros([pad_len])])
+                    length = int(np.ceil(len(data) / audio_sr * svc_model.target_sample))
+                    raw_path = io.BytesIO()
+                    soundfile.write(raw_path, data, audio_sr, format="wav")
+                    raw_path.seek(0)
+                    if slice_tag:
+                        print('jump empty segment')
+                        _audio = np.zeros(length)
+                    else:
+                        out_audio, out_sr = svc_model.infer(spk, tran, raw_path,
+                                                            cluster_infer_ratio=cluster_infer_ratio,
+                                                            auto_predict_f0=auto_predict_f0,
+                                                            noice_scale=noice_scale
+                                                            )
+                        _audio = out_audio.cpu().numpy()
 
-                pad_len = int(svc_model.target_sample * pad_seconds)
-                _audio = _audio[pad_len:-pad_len]
-                audio.extend(list(_audio))
+                    pad_len = int(svc_model.target_sample * pad_seconds)
+                    _audio = _audio[pad_len:-pad_len]
+                    audio.extend(list(_audio))
+                except Exception as e:
+                    print(e)
+                    continue
+
             key = "auto" if auto_predict_f0 else f"{tran}key"
             cluster_name = "" if cluster_infer_ratio == 0 else f"_{cluster_infer_ratio}"
             res_path = f'./results/{clean_name}_{key}_{spk}{cluster_name}.{wav_format}'
             soundfile.write(res_path, audio, svc_model.target_sample, format=wav_format)
+            print("Done: {}_{}key_{}.{}".format(clean_name, tran, spk, wav_format))
 
 if __name__ == '__main__':
     main()
