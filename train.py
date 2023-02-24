@@ -1,5 +1,6 @@
 import logging
 import multiprocessing
+import time
 
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
 import os
@@ -33,7 +34,7 @@ from modules.mel_processing import mel_spectrogram_torch, spec_to_mel_torch
 
 torch.backends.cudnn.benchmark = True
 global_step = 0
-
+start_time = time.time()
 
 # os.environ['TORCH_DISTRIBUTED_DEBUG'] = 'INFO'
 
@@ -208,7 +209,7 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
                 logger.info('Train Epoch: {} [{:.0f}%]'.format(
                     epoch,
                     100. * batch_idx / len(train_loader)))
-                logger.info([x.item() for x in losses] + [global_step, lr])
+                logger.info(f"Losses: {[x.item() for x in losses]}, step: {global_step}, lr: {lr}")
 
                 scalar_dict = {"loss/g/total": loss_gen_all, "loss/d/total": loss_disc_all, "learning_rate": lr,
                                "grad_norm_d": grad_norm_d, "grad_norm_g": grad_norm_g}
@@ -248,7 +249,11 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
         global_step += 1
 
     if rank == 0:
-        logger.info('====> Epoch: {}'.format(epoch))
+        global start_time
+        now = time.time()
+        durtaion = format(now - start_time, '.2f')
+        logger.info(f'====> Epoch: {epoch}, cost {durtaion} s')
+        start_time = now
 
 
 def evaluate(hps, generator, eval_loader, writer_eval):

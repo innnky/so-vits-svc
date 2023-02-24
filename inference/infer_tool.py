@@ -92,6 +92,17 @@ def mkdir(paths: list):
         if not os.path.exists(path):
             os.mkdir(path)
 
+def pad_array(arr, target_length):
+    current_length = arr.shape[0]
+    if current_length >= target_length:
+        return arr
+    else:
+        pad_width = target_length - current_length
+        pad_left = pad_width // 2
+        pad_right = pad_width - pad_left
+        padded_arr = np.pad(arr, (pad_left, pad_right), 'constant', constant_values=(0, 0))
+        return padded_arr
+
 
 class Svc(object):
     def __init__(self, net_g_path, config_path,

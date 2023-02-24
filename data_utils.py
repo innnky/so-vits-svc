@@ -73,9 +73,9 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         assert abs(audio_norm.shape[1]-lmin * self.hop_length) < 3 * self.hop_length
         spec, c, f0, uv = spec[:, :lmin], c[:, :lmin], f0[:lmin], uv[:lmin]
         audio_norm = audio_norm[:, :lmin * self.hop_length]
-        if spec.shape[1] < 30:
-            print("skip too short audio:", filename)
-            return None
+        # if spec.shape[1] < 30:
+        #     print("skip too short audio:", filename)
+        #     return None
         if spec.shape[1] > 800:
             start = random.randint(0, spec.shape[1]-800)
             end = start + 790

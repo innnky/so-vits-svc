@@ -5,10 +5,23 @@ import re
 from tqdm import tqdm
 from random import shuffle
 import json
+import wave
 
 config_template = json.load(open("configs/config.json"))
 
 pattern = re.compile(r'^[\.a-zA-Z0-9_\/]+$')
+
+
+def get_wav_duration(file_path):
+    with wave.open(file_path, 'rb') as wav_file:
+        # 获取音频帧数
+        n_frames = wav_file.getnframes()
+        # 获取采样率
+        framerate = wav_file.getframerate()
+        # 计算时长（秒）
+        duration = n_frames / float(framerate)
+    return duration
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -17,7 +30,7 @@ if __name__ == "__main__":
     parser.add_argument("--test_list", type=str, default="./filelists/test.txt", help="path to test list")
     parser.add_argument("--source_dir", type=str, default="./dataset/44k", help="path to source dir")
     args = parser.parse_args()
-    
+
     train = []
     val = []
     test = []
@@ -28,34 +41,42 @@ if __name__ == "__main__":
         spk_dict[speaker] = spk_id
         spk_id += 1
         wavs = ["/".join([args.source_dir, speaker, i]) for i in os.listdir(os.path.join(args.source_dir, speaker))]
-        for wavpath in wavs:
-            if not pattern.match(wavpath):
-                print(f"warning：文件名{wavpath}中包含非字母数字下划线，可能会导致错误。（也可能不会）")
-        wavs = [i for i in wavs if i.endswith("wav")]
-        wavs_len = len(wavs)
-        if wavs_len < 10:
-            print(f"warning：{speaker}数据集数量小于10条，请补充数据")
+        new_wavs = []
+        for file in wavs:
+            if not file.endswith("wav"):
+                continue
+            if not pattern.match(file):
+                print(f"warning：文件名{file}中包含非字母数字下划线，可能会导致错误。（也可能不会）")
+            if get_wav_duration(file) < 0.3:
+                print("skip too short audio:", file)
+                continue
+            new_wavs.append(file)
+        wavs = new_wavs
         shuffle(wavs)
-        train += wavs[int(wavs_len / 10):int(-wavs_len / 10)]
-        val += wavs[:int(wavs_len / 10)]
-        test += wavs[int(-wavs_len / 10):]
+        wavs_len = len(wavs)
+        # The size ratio of train set vs validation set is typically 8:2
+        train_val_ratio = 5
+        train += wavs[int(wavs_len / train_val_ratio):]
+        val += wavs[:int(wavs_len / train_val_ratio)]
+        # The size of test set doesn't matter, but it shouldn't come from the training set
+        test += wavs[:min(8, int(wavs_len / 10))]
 
     shuffle(train)
     shuffle(val)
     shuffle(test)
-            
+
     print("Writing", args.train_list)
     with open(args.train_list, "w") as f:
         for fname in tqdm(train):
             wavpath = fname
             f.write(wavpath + "\n")
-        
+
     print("Writing", args.val_list)
     with open(args.val_list, "w") as f:
         for fname in tqdm(val):
             wavpath = fname
             f.write(wavpath + "\n")
-            
+
     print("Writing", args.test_list)
     with open(args.test_list, "w") as f:
         for fname in tqdm(test):

@@ -16,7 +16,6 @@ logging.getLogger('numba').setLevel(logging.WARNING)
 chunks_dict = infer_tool.read_temp("inference/chunks_temp.json")
 
 
-
 def main():
     import argparse
 
@@ -25,14 +24,16 @@ def main():
     # 一定要设置的部分
     parser.add_argument('-m', '--model_path', type=str, default="logs/44k/G_0.pth", help='模型路径')
     parser.add_argument('-c', '--config_path', type=str, default="configs/config.json", help='配置文件路径')
-    parser.add_argument('-n', '--clean_names', type=str, nargs='+', default=["君の知らない物語-src.wav"], help='wav文件名列表，放在raw文件夹下')
+    parser.add_argument('-n', '--clean_names', type=str, nargs='+', default=["君の知らない物語-src.wav"],
+                        help='wav文件名列表，放在raw文件夹下')
     parser.add_argument('-t', '--trans', type=int, nargs='+', default=[0], help='音高调整，支持正负（半音）')
     parser.add_argument('-s', '--spk_list', type=str, nargs='+', default=['nen'], help='合成目标说话人名称')
 
     # 可选项部分
     parser.add_argument('-a', '--auto_predict_f0', action='store_true', default=False,
                         help='语音转换自动预测音高，转换歌声时不要打开这个会严重跑调')
-    parser.add_argument('-cm', '--cluster_model_path', type=str, default="logs/44k/kmeans_10000.pt", help='聚类模型路径，如果没有训练聚类则随便填')
+    parser.add_argument('-cm', '--cluster_model_path', type=str, default="logs/44k/kmeans_10000.pt",
+                        help='聚类模型路径，如果没有训练聚类则随便填')
     parser.add_argument('-cr', '--cluster_infer_ratio', type=float, default=0, help='聚类方案占比，范围0-1，若没有训练聚类模型则填0即可')
 
     # 不用动的部分
@@ -73,29 +74,29 @@ def main():
         for spk in spk_list:
             audio = []
             for (slice_tag, data) in audio_data:
+                print(f'#=====segment start, {round(len(data) / audio_sr, 3)}s======')
                 try:
-                    print(f'#=====segment start, {round(len(data) / audio_sr, 3)}s======')
-                    # padd
-                    pad_len = int(audio_sr * pad_seconds)
-                    data = np.concatenate([np.zeros([pad_len]), data, np.zeros([pad_len])])
                     length = int(np.ceil(len(data) / audio_sr * svc_model.target_sample))
-                    raw_path = io.BytesIO()
-                    soundfile.write(raw_path, data, audio_sr, format="wav")
-                    raw_path.seek(0)
                     if slice_tag:
                         print('jump empty segment')
                         _audio = np.zeros(length)
                     else:
+                        # padd
+                        pad_len = int(audio_sr * pad_seconds)
+                        data = np.concatenate([np.zeros([pad_len]), data, np.zeros([pad_len])])
+                        raw_path = io.BytesIO()
+                        soundfile.write(raw_path, data, audio_sr, format="wav")
+                        raw_path.seek(0)
                         out_audio, out_sr = svc_model.infer(spk, tran, raw_path,
                                                             cluster_infer_ratio=cluster_infer_ratio,
                                                             auto_predict_f0=auto_predict_f0,
                                                             noice_scale=noice_scale
                                                             )
                         _audio = out_audio.cpu().numpy()
+                        pad_len = int(svc_model.target_sample * pad_seconds)
+                        _audio = _audio[pad_len:-pad_len]
 
-                    pad_len = int(svc_model.target_sample * pad_seconds)
-                    _audio = _audio[pad_len:-pad_len]
-                    audio.extend(list(_audio))
+                    audio.extend(list(infer_tool.pad_array(_audio, length)))
                 except Exception as e:
                     print(e)
                     continue
@@ -105,6 +106,7 @@ def main():
             res_path = f'./results/{clean_name}_{key}_{spk}{cluster_name}.{wav_format}'
             soundfile.write(res_path, audio, svc_model.target_sample, format=wav_format)
             print("Done: {}_{}key_{}.{}".format(clean_name, tran, spk, wav_format))
+
 
 if __name__ == '__main__':
     main()

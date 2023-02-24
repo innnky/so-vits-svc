@@ -51,7 +51,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     filenames = glob(f'{args.in_dir}/*/*.wav', recursive=True)  # [:10]
     shuffle(filenames)
-    multiprocessing.set_start_method('spawn')
+    multiprocessing.set_start_method('spawn',force=True)
 
     num_processes = 1
     chunk_size = int(math.ceil(len(filenames) / num_processes))
