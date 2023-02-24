@@ -53,13 +53,11 @@ if __name__ == "__main__":
             new_wavs.append(file)
         wavs = new_wavs
         shuffle(wavs)
-        wavs_len = len(wavs)
-        # The size ratio of train set vs validation set is typically 8:2
-        train_val_ratio = 5
-        train += wavs[int(wavs_len / train_val_ratio):]
-        val += wavs[:int(wavs_len / train_val_ratio)]
-        # The size of test set doesn't matter, but it shouldn't come from the training set
-        test += wavs[:min(8, int(wavs_len / 10))]
+        wavs = new_wavs
+        shuffle(wavs)
+        train += wavs[2:-2]
+        val += wavs[:2]
+        test += wavs[-2:]
 
     shuffle(train)
     shuffle(val)
