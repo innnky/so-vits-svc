@@ -1,12 +1,10 @@
 import io
 import logging
-import time
 from pathlib import Path
 
-import librosa
-import matplotlib.pyplot as plt
 import numpy as np
 import soundfile
+import platform
 
 from inference import infer_tool
 from inference import slicer
@@ -25,7 +23,7 @@ def main():
     # 一定要设置的部分
     parser.add_argument('-m', '--model_path', type=str, default="logs/44k/G_0.pth", help='模型路径')
     parser.add_argument('-c', '--config_path', type=str, default="configs/config.json", help='配置文件路径')
-    parser.add_argument('-n', '--clean_names', type=str, nargs='+', default=["君の知らない物語-src.wav"], help='wav文件名列表，放在raw文件夹下')
+    parser.add_argument('-f', '--input_files', type=str, nargs='+', default=["raw/君の知らない物語-src.wav"], help='wav文件名列表，放在raw文件夹下')
     parser.add_argument('-t', '--trans', type=int, nargs='+', default=[0], help='音高调整，支持正负（半音）')
     parser.add_argument('-s', '--spk_list', type=str, nargs='+', default=['nen'], help='合成目标说话人名称')
 
@@ -41,12 +39,15 @@ def main():
     parser.add_argument('-ns', '--noice_scale', type=float, default=0.4, help='噪音级别，会影响咬字和音质，较为玄学')
     parser.add_argument('-p', '--pad_seconds', type=float, default=0.5, help='推理音频pad秒数，由于未知原因开头结尾会有异响，pad一小段静音段后就不会出现')
     parser.add_argument('-wf', '--wav_format', type=str, default='flac', help='音频输出格式')
+    parser.add_argument('-hb', '--hubert_path', type=str, default='hubert/checkpoint_best_legacy_500.pt', help='hubert模型路径')
+    parser.add_argument('-o', '--output_path', type=str, default="results", help='输出路径（文件夹）')
 
     args = parser.parse_args()
 
-    svc_model = Svc(args.model_path, args.config_path, args.device, args.cluster_model_path)
+    svc_model = Svc(args.model_path, args.config_path,
+                    args.device, args.cluster_model_path, hubert_model_path=args.hubert_path)
     infer_tool.mkdir(["raw", "results"])
-    clean_names = args.clean_names
+    input_list = args.input_files
     trans = args.trans
     spk_list = args.spk_list
     slice_db = args.slice_db
@@ -55,14 +56,13 @@ def main():
     cluster_infer_ratio = args.cluster_infer_ratio
     noice_scale = args.noice_scale
     pad_seconds = args.pad_seconds
+    output_dir = Path(args.output_path)
 
-    infer_tool.fill_a_to_b(trans, clean_names)
-    for clean_name, tran in zip(clean_names, trans):
-        raw_audio_path = f"raw/{clean_name}"
-        if "." not in raw_audio_path:
-            raw_audio_path += ".wav"
-        infer_tool.format_wav(raw_audio_path)
-        wav_path = Path(raw_audio_path).with_suffix('.wav')
+    infer_tool.fill_a_to_b(trans, input_list)
+    for input_file, tran in zip(input_list, trans):
+        wav_path = Path(input_file)
+        if not wav_path.suffix or platform.system() == "Windows":
+            wav_path = infer_tool.format_wav(wav_path)
         chunks = slicer.cut(wav_path, db_thresh=slice_db)
         audio_data, audio_sr = slicer.chunks2audio(wav_path, chunks)
 
@@ -79,10 +79,10 @@ def main():
                     # padd
                     pad_len = int(audio_sr * pad_seconds)
                     data = np.concatenate([np.zeros([pad_len]), data, np.zeros([pad_len])])
-                    raw_path = io.BytesIO()
-                    soundfile.write(raw_path, data, audio_sr, format="wav")
-                    raw_path.seek(0)
-                    out_audio, out_sr = svc_model.infer(spk, tran, raw_path,
+                    data_with_pad = io.BytesIO()
+                    soundfile.write(data_with_pad, data, audio_sr, format="wav")
+                    data_with_pad.seek(0)
+                    out_audio, out_sr = svc_model.infer(spk, tran, data_with_pad,
                                                         cluster_infer_ratio=cluster_infer_ratio,
                                                         auto_predict_f0=auto_predict_f0,
                                                         noice_scale=noice_scale
@@ -94,7 +94,8 @@ def main():
                 audio.extend(list(infer_tool.pad_array(_audio, length)))
             key = "auto" if auto_predict_f0 else f"{tran}key"
             cluster_name = "" if cluster_infer_ratio == 0 else f"_{cluster_infer_ratio}"
-            res_path = f'./results/{clean_name}_{key}_{spk}{cluster_name}.{wav_format}'
+            clean_name = Path(input_file).stem
+            res_path = output_dir / f'{clean_name}_{key}_{spk}{cluster_name}.{wav_format}'
             soundfile.write(res_path, audio, svc_model.target_sample, format=wav_format)
 
 if __name__ == '__main__':
