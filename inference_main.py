@@ -46,7 +46,6 @@ def main():
 
     svc_model = Svc(args.model_path, args.config_path,
                     args.device, args.cluster_model_path, hubert_model_path=args.hubert_path)
-    infer_tool.mkdir(["raw", "results"])
     input_list = args.input_files
     trans = args.trans
     spk_list = args.spk_list
@@ -57,6 +56,7 @@ def main():
     noice_scale = args.noice_scale
     pad_seconds = args.pad_seconds
     output_dir = Path(args.output_path)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     infer_tool.fill_a_to_b(trans, input_list)
     for input_file, tran in zip(input_list, trans):
