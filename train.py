@@ -63,7 +63,7 @@ def run(rank, n_gpus, hps):
     torch.cuda.set_device(rank)
 
     train_dataset = TextAudioSpeakerLoader(hps.data.training_files, hps)
-    train_loader = DataLoader(train_dataset, num_workers=8, shuffle=False, pin_memory=True,
+    train_loader = DataLoader(train_dataset, num_workers=hps.train.num_workers, shuffle=False, pin_memory=True,
                               batch_size=hps.train.batch_size)
     if rank == 0:
         eval_dataset = EvalDataLoader(hps.data.validation_files, hps)
