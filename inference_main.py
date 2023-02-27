@@ -101,7 +101,7 @@ def main():
                         _audio = _audio[pad_len:-pad_len]
                         return _audio
                     
-                    if data_secs > args.slice_forced:
+                    if args.slice_forced > 0 and data_secs > args.slice_forced:
                         step = int(args.slice_forced * audio_sr)
                         for i in range(0, len(data), step):
                             ends = i + step if i + step < len(data) else len(data)
