@@ -26,7 +26,7 @@
 + soft vc hubert：[hubert-soft-0d54a1f4.pt](https://github.com/bshall/hubert/releases/download/v0.1/hubert-soft-0d54a1f4.pt)
   + 放在`hubert`目录下
 + 预训练底模文件 [G_0.pth](https://huggingface.co/innnky/sovits_pretrained/resolve/main/G_0.pth) 与 [D_0.pth](https://huggingface.co/innnky/sovits_pretrained/resolve/main/D_0.pth)
-  + 放在`logs/32k`目录下
+  + 放在`pretrained`目录下
   + 预训练底模为必选项，因为据测试从零开始训练有概率不收敛，同时底模也能加快训练速度
   + 预训练底模训练数据集包含云灏 即霜 辉宇·星AI 派蒙 绫地宁宁，覆盖男女生常见音域，可以认为是相对通用的底模
   + 底模删除了`optimizer speaker_embedding`等无关权重, 只可以用于初始化训练，无法用于推理
@@ -36,8 +36,8 @@
 # hubert
 wget -P hubert/ https://github.com/bshall/hubert/releases/download/v0.1/hubert-soft-0d54a1f4.pt
 # G与D预训练模型
-wget -P logs/32k/ https://huggingface.co/innnky/sovits_pretrained/resolve/main/G_0.pth
-wget -P logs/32k/ https://huggingface.co/innnky/sovits_pretrained/resolve/main/D_0.pth
+wget -P pretrained/ https://huggingface.co/innnky/sovits_pretrained/resolve/main/G_0.pth
+wget -P pretrained/ https://huggingface.co/innnky/sovits_pretrained/resolve/main/D_0.pth
 
 ```
 
