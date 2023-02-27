@@ -171,6 +171,11 @@ def latest_checkpoint_path(dir_path, regex="G_*.pth"):
   return x
 
 
+def pretrained_checkpoint_path(dir_path, model="G_0.pth"):
+  currentDirectory = os.path.dirname(os.path.realpath(__file__))
+  modelDirectory = os.path.join(currentDirectory, "pretrained")
+  return os.path.join(modelDirectory, model)
+
 def plot_spectrogram_to_numpy(spectrogram):
   global MATPLOTLIB_FLAG
   if not MATPLOTLIB_FLAG:

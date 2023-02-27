@@ -96,8 +96,16 @@ def run(rank, n_gpus, hps):
                                                    optim_d)
         global_step = (epoch_str - 1) * len(train_loader)
     except:
-        epoch_str = 1
-        global_step = 0
+        try:
+            _, _, _, epoch_str = utils.load_checkpoint(utils.pretrained_checkpoint_path(hps.model_dir, "G_0.pth"), net_g,
+                                                       optim_g)
+            _, _, _, epoch_str = utils.load_checkpoint(utils.pretrained_checkpoint_path(hps.model_dir, "D_0.pth"), net_d,
+                                                       optim_d)
+            global_step = (epoch_str - 1) * len(train_loader)
+        except:
+            print("No model found!")
+            epoch_str = 1
+            global_step = 0
 
     scheduler_g = torch.optim.lr_scheduler.ExponentialLR(optim_g, gamma=hps.train.lr_decay, last_epoch=epoch_str - 2)
     scheduler_d = torch.optim.lr_scheduler.ExponentialLR(optim_d, gamma=hps.train.lr_decay, last_epoch=epoch_str - 2)
@@ -217,7 +225,7 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
                     scalars=scalar_dict
                 )
 
-            if global_step % hps.train.eval_interval == 0:
+            if global_step % hps.train.eval_interval == 0 and global_step != 0 :
                 evaluate(hps, net_g, eval_loader, writer_eval)
                 utils.save_checkpoint(net_g, optim_g, hps.train.learning_rate, epoch,
                                       os.path.join(hps.model_dir, "G_{}.pth".format(global_step)))
