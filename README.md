@@ -79,12 +79,12 @@ python train.py -c configs/config.json -m 44k
 
 ```shell
 # 例
-python inference_main.py -m "logs/44k/G_30400.pth" -c "configs/config.json" -n "君の知らない物語-src.wav" -t 0 -s "nen"
+python inference_main.py -m "logs/44k/G_30400.pth" -c "configs/config.json" -f "raw/君の知らない物語-src.wav" -t 0 -s "nen"
 ```
 必填项部分
 + -m, --model_path：模型路径。
 + -c, --config_path：配置文件路径。
-+ -n, --clean_names：wav 文件名列表，放在 raw 文件夹下。
++ -f, --input_files：wav 文件名列表，相对/绝对路径均可。
 + -t, --trans：音高调整，支持正负（半音）。
 + -s, --spk_list：合成目标说话人名称。
 
