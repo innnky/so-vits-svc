@@ -1,5 +1,10 @@
 # SoftVC VITS Singing Voice Conversion
 
+## SoVITS已停止更新并正式Archive
+后续维护等工作的一些其他相关仓库： 
++ [so-vits-svc](https://github.com/svc-develop-team/so-vits-svc) ：svc社区准备接手维护sovits，如果有pr和issue可以往这里提交 
++ [SoftVitsResearch](https://github.com/NaruseMioShirakana/SoftVitsResearch) ：用于制作一些比较花里胡哨的功能（主要面向Onnx端-MoeSS）
+
 ## 强调！！！！！！！！！！！！
 SoVits是语音转换 (说话人转换)，作用是将一个音频中语音的音色转化为目标说话人的音色，并不是TTS (文本转语音)，SoVits虽然基于Vits开发，但两者是两个不同的项目，请不要搞混，要训练TTS请前往 [Conditional Variational Autoencoder with Adversarial Learning for End-to-End Text-to-Speech](https://github.com/jaywalnut310/vits)
 
