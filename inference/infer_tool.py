@@ -143,6 +143,10 @@ def mkdir(paths: list):
         if not os.path.exists(path):
             os.mkdir(path)
 
+def split_list_by_n(list_collection, n):
+    for i in range(0, len(list_collection), n):
+        yield list_collection[i: i + n]
+
 
 class Svc(object):
     def __init__(self, net_g_path, config_path, hubert_path="hubert/hubert-soft-0d54a1f4.pt",
