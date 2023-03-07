@@ -11,6 +11,7 @@ config_template = json.load(open("configs/config.json"))
 
 pattern = re.compile(r'^[\.a-zA-Z0-9_\/]+$')
 
+
 def get_wav_duration(file_path):
     with wave.open(file_path, 'rb') as wav_file:
         # 获取音频帧数
@@ -21,6 +22,7 @@ def get_wav_duration(file_path):
         duration = n_frames / float(framerate)
     return duration
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--train_list", type=str, default="./filelists/train.txt", help="path to train list")
@@ -28,7 +30,7 @@ if __name__ == "__main__":
     parser.add_argument("--test_list", type=str, default="./filelists/test.txt", help="path to test list")
     parser.add_argument("--source_dir", type=str, default="./dataset/44k", help="path to source dir")
     args = parser.parse_args()
-    
+
     train = []
     val = []
     test = []
@@ -51,6 +53,8 @@ if __name__ == "__main__":
             new_wavs.append(file)
         wavs = new_wavs
         shuffle(wavs)
+        wavs = new_wavs
+        shuffle(wavs)
         train += wavs[2:-2]
         val += wavs[:2]
         test += wavs[-2:]
@@ -58,19 +62,19 @@ if __name__ == "__main__":
     shuffle(train)
     shuffle(val)
     shuffle(test)
-            
+
     print("Writing", args.train_list)
     with open(args.train_list, "w") as f:
         for fname in tqdm(train):
             wavpath = fname
             f.write(wavpath + "\n")
-        
+
     print("Writing", args.val_list)
     with open(args.val_list, "w") as f:
         for fname in tqdm(val):
             wavpath = fname
             f.write(wavpath + "\n")
-            
+
     print("Writing", args.test_list)
     with open(args.test_list, "w") as f:
         for fname in tqdm(test):
