@@ -4,17 +4,6 @@ from fairseq import checkpoint_utils
 from onnxexport.model_onnx import SynthesizerTrn
 import utils
 
-def get_hubert_model():
-    vec_path = "hubert/checkpoint_best_legacy_500.pt"
-    print("load model(s) from {}".format(vec_path))
-    models, saved_cfg, task = checkpoint_utils.load_model_ensemble_and_task(
-        [vec_path],
-        suffix="",
-    )
-    model = models[0]
-    model.eval()
-    return model
-
 
 def main(HubertExport, NetExport):
     path = "SoVits4.0"

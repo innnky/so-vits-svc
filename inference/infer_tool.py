@@ -16,16 +16,19 @@ import torch
 import torchaudio
 
 import cluster
-from hubert import hubert_model
 import utils
 from models import SynthesizerTrn
+from pathlib import Path
+
 
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
 
 def read_temp(file_name):
-    if not os.path.exists(file_name):
-        with open(file_name, "w") as f:
+    path = Path(file_name)
+    if not path.exists():
+        path.parent.mkdir(exist_ok=True)
+        with open(path, "w") as f:
             f.write(json.dumps({"info": "temp_dict"}))
         return {}
     else:
@@ -61,11 +64,13 @@ def timeit(func):
     return run
 
 
-def format_wav(audio_path):
-    if Path(audio_path).suffix == '.wav':
-        return
+def format_wav(audio_path: Path):
+    if audio_path.suffix == '.wav':
+        return audio_path
+    audio_path = audio_path.with_suffix(".wav")
     raw_audio, raw_sample_rate = librosa.load(audio_path, mono=True, sr=None)
-    soundfile.write(Path(audio_path).with_suffix(".wav"), raw_audio, raw_sample_rate)
+    soundfile.write(audio_path, raw_audio, raw_sample_rate)
+    return audio_path
 
 
 def get_end_file(dir_path, end):
@@ -107,7 +112,8 @@ def pad_array(arr, target_length):
 class Svc(object):
     def __init__(self, net_g_path, config_path,
                  device=None,
-                 cluster_model_path="logs/44k/kmeans_10000.pt"):
+                 cluster_model_path="logs/44k/kmeans_10000.pt",
+                 hubert_model_path="hubert/checkpoint_best_legacy_500.pt"):
         self.net_g_path = net_g_path
         if device is None:
             self.dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -119,7 +125,7 @@ class Svc(object):
         self.hop_size = self.hps_ms.data.hop_length
         self.spk2id = self.hps_ms.spk
         # 加载hubert
-        self.hubert_model = utils.get_hubert_model().to(self.dev)
+        self.hubert_model = utils.get_hubert_model(hubert_model_path).to(self.dev)
         self.load_model()
         if os.path.exists(cluster_model_path):
             self.cluster_model = cluster.get_cluster_model(cluster_model_path)

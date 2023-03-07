@@ -179,8 +179,7 @@ def f0_to_coarse(f0):
   return f0_coarse
 
 
-def get_hubert_model():
-  vec_path = "hubert/checkpoint_best_legacy_500.pt"
+def get_hubert_model(vec_path: str = "hubert/checkpoint_best_legacy_500.pt"):
   print("load model(s) from {}".format(vec_path))
   from fairseq import checkpoint_utils
   models, saved_cfg, task = checkpoint_utils.load_model_ensemble_and_task(
