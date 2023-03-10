@@ -37,6 +37,7 @@ def main():
 
     # 不用动的部分
     parser.add_argument('-sd', '--slice_db', type=int, default=-40, help='默认-40，嘈杂的音频可以-30，干声保留呼吸可以-50')
+    parser.add_argument('-sf', '--slice_forced', type=int, default=0, help='强制切片，会在db切片的基础上再切一次，填入切片长度（秒），0则不切片')
     parser.add_argument('-d', '--device', type=str, default=None, help='推理设备，None则为自动选择cpu和gpu')
     parser.add_argument('-ns', '--noice_scale', type=float, default=0.4, help='噪音级别，会影响咬字和音质，较为玄学')
     parser.add_argument('-p', '--pad_seconds', type=float, default=0.5, help='推理音频pad秒数，由于未知原因开头结尾会有异响，pad一小段静音段后就不会出现')
@@ -69,29 +70,48 @@ def main():
         for spk in spk_list:
             audio = []
             for (slice_tag, data) in audio_data:
-                print(f'#=====segment start, {round(len(data) / audio_sr, 3)}s======')
+                def len_in_secs(length):
+                    return round(length / audio_sr, 3)
 
-                length = int(np.ceil(len(data) / audio_sr * svc_model.target_sample))
+                def get_length(data):
+                    return int(np.ceil(len(data) / audio_sr * svc_model.target_sample))
+
+                data_secs = len_in_secs(len(data))
+                length = get_length(data)
+                print(f'#=====segment start, {data_secs}s======')
+
                 if slice_tag:
                     print('jump empty segment')
                     _audio = np.zeros(length)
+                    audio.extend(list(infer_tool.pad_array(_audio, length)))
                 else:
-                    # padd
-                    pad_len = int(audio_sr * pad_seconds)
-                    data = np.concatenate([np.zeros([pad_len]), data, np.zeros([pad_len])])
-                    raw_path = io.BytesIO()
-                    soundfile.write(raw_path, data, audio_sr, format="wav")
-                    raw_path.seek(0)
-                    out_audio, out_sr = svc_model.infer(spk, tran, raw_path,
-                                                        cluster_infer_ratio=cluster_infer_ratio,
-                                                        auto_predict_f0=auto_predict_f0,
-                                                        noice_scale=noice_scale
-                                                        )
-                    _audio = out_audio.cpu().numpy()
-                    pad_len = int(svc_model.target_sample * pad_seconds)
-                    _audio = _audio[pad_len:-pad_len]
+                    def pad_and_infer(data):
+                        # padd
+                        pad_len = int(audio_sr * pad_seconds)
+                        data = np.concatenate([np.zeros([pad_len]), data, np.zeros([pad_len])])
+                        data_with_pad = io.BytesIO()
+                        soundfile.write(data_with_pad, data, audio_sr, format="wav")
+                        data_with_pad.seek(0)
+                        out_audio, out_sr = svc_model.infer(spk, tran, data_with_pad,
+                                                            cluster_infer_ratio=cluster_infer_ratio,
+                                                            auto_predict_f0=auto_predict_f0,
+                                                            noice_scale=noice_scale)
+                        _audio = out_audio.cpu().numpy()
+                        pad_len = int(svc_model.target_sample * pad_seconds)
+                        _audio = _audio[pad_len:-pad_len]
+                        return _audio
+                    
+                    if args.slice_forced > 0 and data_secs > args.slice_forced:
+                        step = int(args.slice_forced * audio_sr)
+                        for i in range(0, len(data), step):
+                            ends = i + step if i + step < len(data) else len(data)
+                            print(f'forced slice {len_in_secs(i)}~{len_in_secs(ends)}')
+                            _audio = pad_and_infer(data[i:ends])
+                            audio.extend(list(infer_tool.pad_array(_audio, get_length(data[i:ends]))))
+                    else:
+                        _audio = pad_and_infer(data)
+                        audio.extend(list(infer_tool.pad_array(_audio, length)))
 
-                audio.extend(list(infer_tool.pad_array(_audio, length)))
             key = "auto" if auto_predict_f0 else f"{tran}key"
             cluster_name = "" if cluster_infer_ratio == 0 else f"_{cluster_infer_ratio}"
             res_path = f'./results/{clean_name}_{key}_{spk}{cluster_name}.{wav_format}'
